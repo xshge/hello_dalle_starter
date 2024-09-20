@@ -1,0 +1,12 @@
+# Node Modules
+node_modules
+
+# Files that contain secrets
+.env
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Any files in any directory named "output"
+**/output/
