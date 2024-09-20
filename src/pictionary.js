@@ -36,7 +36,7 @@ function pick(array){
 }
 async function main()
 {   
-    say("You will be given 10 seconds to look at an image and give back a description of said image");
+    say("You will be given a subject and give back a description of said subject for gpt to guess");
 
     const diff = await ask("Do you want a diffcult subject?");
     const subject = determineDiff(diff);
@@ -67,6 +67,7 @@ async function main()
         }
     )
     say(guess.content);
+    say(img.url);
     //const result = await promptDalle(` I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: an image of a ${subject}`);
     // say(result.url);
     // say("");
