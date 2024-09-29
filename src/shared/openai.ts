@@ -81,6 +81,7 @@ export async function gpt(
     // stream_options: null,
     // temperature: 0.8,
     // top_p: null,
+    //tools: []
   };
 
   const chatParams: OpenAIChatParams = {
