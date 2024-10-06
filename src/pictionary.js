@@ -47,11 +47,11 @@ async function main()
     const guess = await gpt(
         {
             messages:[{
-                 role: "user",
+                role: "user",
                 content:[
                     {
                         type: "text",
-                        text:"Give me one precise guess for the object in the image",
+                       "Give me one precise guess for the object in the image",
                     },
                     {
                         type:"image_url",

@@ -1,8 +1,9 @@
 
-import { ask, say, Select } from "./shared/cli.ts";
+import { ask, say } from "./shared/cli.ts";
 import { promptGPT, gpt } from "./shared/openai.ts";
+import { LogLevel, setLogLevel } from "./shared/logger.ts";
+setLogLevel(LogLevel.Debug);
 
-let userExist;
 const savePath = "src/user.json";
 async function writeUserSaveFile(filePath, Json){
     try{
@@ -19,15 +20,13 @@ let userProfile = {
 }
 
 async function updatingProfile(){
-    //asking user for what do they want to do;
-    //checking out the skill tree;
-  
-    //changing information on the profile;
+    //asking user for what do they want to change;
     const field = await ask("What would you like change?");
     let changes = await ask("What would you want to update it to?");
 
     //then update the json object
     let existingProfile = await readUserProfile('src/user.json');
+
 
     existingProfile[field] = changes;
     //then save it to local file with writeUserFile
@@ -43,10 +42,9 @@ if(response.includes("n")){
     userProfile.expertise = await ask ("Which craft would you like to practice?");
     userProfile.skillLevel = await ask("what is your current skill level in that craft?");
     await writeUserSaveFile('src/user.json', userProfile);
-    userExist = false;
+
 }else{
     await updatingProfile();
-    userExist = true;
 }
 
 say("Here, we are gonna start generating some suggestions for you to improve upon");
@@ -57,34 +55,41 @@ async function readUserProfile(filePath){
     return JSON.parse(await Deno.readTextFile(filePath));
 }
 
-const profile = await readUserProfile('src/user.json');
-//console.log(JSON.stringify(profile));
-const suggestion = await promptGPT (`Give me 2 ahort suggestions for skills to imporve basing off of this user profile: ${JSON.stringify(profile)}.`, {max_tokens: 200});
+// const profile = await readUserProfile('src/user.json');
+// //console.log(JSON.stringify(profile));
+// const suggestion = await promptGPT (`Give me 2 ahort suggestions for skills to imporve basing off of this user profile: ${JSON.stringify(profile)}.`, {max_tokens: 200});
 
-say(suggestion);
-
-if(userExist){
-    //update skilltree;
-    let user = await readUserProfile(savePath);
-    //select the category to update
-}else{
-    //create a skill tree;
-    let user = await readUserProfile(savePath);
-
-    user.SkillTree = [];
-    SkillTree.push({suggestion: 1});
-    await writeUserSaveFile(savePath, user);
-}
-// const suggestion = await gpt (
+// say(suggestion);
+// const tools =  {
+//     type: "function",
+//     function: {
+//         name: "readUserProfile",
+//         description: "read the local JSON file and return a JSON object",
+//         parameters: {
+//             type: "object",
+//             properties: {
+//                 filePath: {
+//                     type: "string",
+//                     description:"the local file path that it would read from",
+//                 }
+//             },
+//             required: ["filePath"],
+//             additionalProperties: false
+//         },
+//         strict: true
+//     }
+// };
+// passing the function definition to GPT;
+// let suggestion = await gpt (
 //     {
 //         messages:[
 //         {   role:"system", 
-//             content:"Give me a simple list for answers, no extra explannation needed"
+//             content:"You are a helpful assistant for artists. Call functions that are supplied to fulfill artists' request."
           
 //         },
 //         {
 //             role: "user",
-//             content:"Give me suggestions for skills to imporve basing off of this user profile"
+//             content:"Give me suggestions for skills to imporve basing off of my skill tree profile"
          
 //         }
 //         ],
@@ -138,5 +143,46 @@ if(userExist){
 //         say(finalResponse);
 //     }
 // }
-//say(JSON.stringify(suggestion, null, 2));
+// say(JSON.stringify(suggestion, null, 2));
+// say(JSON.stringify(suggestion.tool_calls[0]));
+
+// const messages = [];
+// messages.push ({role:"system", content:"You are a helpful customer support assistant. Use the supplied tools to assist the user."});
+// messages.push({role: "user", content:"Give me suggestions for skills to imporve basing off of my skill tree profile"});
+// messages.push({role: "assistant", content: `${suggestion.content}`});
+
+
+// const toolCalls = await gpt(
+//     {
+//         messages: messages,
+//         tools: tools
+
+//     }
+// )
+
+// if(suggestion.tool_calls){
+//     say("calling function now");
+//     await handleFunctionCall(suggestion.tool_calls);
+//     suggestion = await gpt(
+//         {
+//             messages,
+//             max_tokens: 256
+//         }
+//     )
+
+// }
+// say(suggestion.content);
+
+// async function handleFunctionCall(tool_calls){
+//     const functionName = tool_calls[0].name;
+//     const usingFunction = await readUserProfile(savePath);
+
+//     messages.push([{
+//         tool_call_id: tool_calls[0].id,
+//         role: "tool",
+//         name: functionName,
+//         content: usingFunction
+//     }])
+
+// }
    
