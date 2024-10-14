@@ -1,4 +1,4 @@
-import { Input } from "https://deno.land/x/cliffy@v1.0.0-rc.3/prompt/mod.ts";
+import { Input, Confirm, Select } from "https://deno.land/x/cliffy@v1.0.0-rc.3/prompt/mod.ts";
 import wrapAnsi from "npm:wrap-ansi@9";
 
 /**
