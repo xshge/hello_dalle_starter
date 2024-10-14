@@ -7,13 +7,16 @@ import {
   Column,
   Table,
 } from "https://deno.land/x/cliffy@v1.0.0-rc.4/table/mod.ts";
+import { colors } from "https://deno.land/x/cliffy@v1.0.0-rc.4/ansi/colors.ts";
+
 import { gpt, promptGPT } from "./shared/openai.ts";
 import * as mod from "https://deno.land/std@0.224.0/datetime/mod.ts";
 
 let userDoesntExist;
 const savePath = "src/user.json";
 let suggestion = String.empty;
-
+const begginer = colors.yellow;
+const intermediate = colors.cyan;
 let newUserProfile = {
   "fileName": " ",
   "expertise": " ",
@@ -29,16 +32,28 @@ const userProfile = await readUserProfile(savePath);
 // showing user skillTree if it exist
 if ("SkillTree" in userProfile && userProfile.SkillTree != undefined) {
   const tree = new Table()
-    .header(["Skill Name", "Level"])
-    .columns([
-      { border: true },
-      new Column().align("center"),
-    ]);
-  for (const item of userProfile["SkillTree"]) {
-    for (const [key, value] of Object.entries(item)) {
-      tree.push([key, value]);
-      //console.log(key, value);
-    }
+    .header([colors.rgb24("Skill Name", 0xff3333), "Level"])
+    .column(0, { border: true });
+
+  const startingLevel = userProfile.skillLevel;
+  switch (startingLevel) {
+    case ("begginer"):
+      for (const item of userProfile["SkillTree"]) {
+        for (const [key, value] of Object.entries(item)) {
+          tree.push([begginer(key), value]);
+          //console.log(key, value);
+        }
+      }
+      break;
+
+    case ("intermediate"):
+      for (const item of userProfile["SkillTree"]) {
+        for (const [key, value] of Object.entries(item)) {
+          tree.push([colors.rgb24(key, 0x6AD23D), value]);
+          //console.log(key, value);
+        }
+      }
+      break;
   }
 
   userDoesntExist = false;
@@ -69,12 +84,17 @@ if (typeof selectedTask === "boolean") {
 async function startNewProfile() {
   //setting up new files
   newUserProfile.fileName = await ask("How would you like to name your file?");
-  newUserProfile.expertise = await ask(
+  newUserProfile.expertise = await Select.prompt(
     "Which craft would you like to practice?",
   );
-  newUserProfile.skillLevel = await ask(
-    "what is your current skill level in that craft?",
-  );
+  newUserProfile.skillLevel = await ask({
+    message: "what is your current skill level in that craft?",
+    options: [
+      "begginer",
+      "intermediate",
+      "advanced",
+    ],
+  });
   await writeUserSaveFile("src/user.json", newUserProfile);
   userExist = false;
 }
@@ -205,7 +225,7 @@ async function loggingProgress(existingProfile) {
           {
             role: "system",
             content:
-              `You are an helful assistant that evaluate artists' progress in their journey of bettering their skills. 
+              `You are an helpful but critical assistant that evaluate artists' progress in their journey of bettering their skills. 
               Basing off of user's dexription, you always evaluate for each skills in this array ${skills}, and you always give points to each skills within the range of 1 through 10. 
               Your number of evaluation should match the number of elements in this array.
               You should only give higher points when user made relevant progress in said skills.
@@ -260,4 +280,30 @@ async function loggingProgress(existingProfile) {
   }
 
   //checking out the skill tree;
+  showSkillTree(existingProfile);
+}
+function showSkillTree(file) {
+  let colorIndex;
+  const newTree = new Table()
+    .header([colors.rgb24("Skill Name", 0xff3333), "Level"])
+    .column(0, { border: true });
+  //going through the values of the skills
+  for (const item of file["SkillTree"]) {
+    for (const [key, value] of Object.entries(item)) {
+      //compare each of their points to a bench mark (switch cases), 25:advanced beginner color hexcode, 50: intermediate color hexcode,
+      console.log(value);
+      if (5 <= value && value <= 10) {
+        colorIndex = 0xE875B1;
+        newTree.push([colors.rgb24(key, colorIndex), value]);
+      } else if (10 <= value && value <= 20) {
+        colorIndex = 0x6AD23D;
+        newTree.push([colors.rgb24(key, colorIndex), value]);
+      } else if (20 <= value && value <= 30) {
+        colorIndex = 0x28c78f;
+        newTree.push([colors.rgb24(key, colorIndex), value]);
+      }
+    }
+  }
+
+  newTree.render();
 }

@@ -36,16 +36,16 @@ async function updatingProfile(){
 say("Welcomes to artist skill tree");
 say("");
 
-const response = await ask("Would you like to load up a previous profiles?");
-if(response.includes("n")){
-    userProfile.fileName = await ask("How would you like to name your file?");
-    userProfile.expertise = await ask ("Which craft would you like to practice?");
-    userProfile.skillLevel = await ask("what is your current skill level in that craft?");
-    await writeUserSaveFile('src/user.json', userProfile);
+// const response = await ask("Would you like to load up a previous profiles?");
+// if(response.includes("n")){
+//     userProfile.fileName = await ask("How would you like to name your file?");
+//     userProfile.expertise = await ask ("Which craft would you like to practice?");
+//     userProfile.skillLevel = await ask("what is your current skill level in that craft?");
+//     await writeUserSaveFile('src/user.json', userProfile);
 
-}else{
-    await updatingProfile();
-}
+// }else{
+//     await updatingProfile();
+// }
 
 say("Here, we are gonna start generating some suggestions for you to improve upon");
 
@@ -60,65 +60,46 @@ async function readUserProfile(filePath){
 // const suggestion = await promptGPT (`Give me 2 ahort suggestions for skills to imporve basing off of this user profile: ${JSON.stringify(profile)}.`, {max_tokens: 200});
 
 // say(suggestion);
-// const tools =  {
-//     type: "function",
-//     function: {
-//         name: "readUserProfile",
-//         description: "read the local JSON file and return a JSON object",
-//         parameters: {
-//             type: "object",
-//             properties: {
-//                 filePath: {
-//                     type: "string",
-//                     description:"the local file path that it would read from",
-//                 }
-//             },
-//             required: ["filePath"],
-//             additionalProperties: false
-//         },
-//         strict: true
-//     }
-// };
-// passing the function definition to GPT;
-// let suggestion = await gpt (
-//     {
-//         messages:[
-//         {   role:"system", 
-//             content:"You are a helpful assistant for artists. Call functions that are supplied to fulfill artists' request."
+const tools = [
+    {
+    type: "function",
+    function: {
+        name: "readUserProfile",
+        description: "read the local JSON file and return a JSON object",
+        parameters: {
+            type: "object",
+            properties: {
+                filePath: {
+                    type: "string",
+                    description:"the local file path that it would read from",
+                }
+            },
+            required: ["filePath"],
+            additionalProperties: false
+        },
+        strict: true
+    }
+    }
+];
+//passing the function definition to GPT;
+let suggestion = await gpt (
+    {
+        messages:[
+        {   role:"system", 
+            content:"You are a helpful assistant for artists. Call functions that are supplied to fulfill artists' request."
           
-//         },
-//         {
-//             role: "user",
-//             content:"Give me suggestions for skills to imporve basing off of my skill tree profile"
+        },
+        {
+            role: "user",
+            content:"Give me suggestions for skills to imporve basing off of my skill tree profile"
          
-//         }
-//         ],
+        }
+        ],
 
-//         tools: [
-//             {
-//                 type: "function",
-//                 function: {
-//                     name: "readUserProfile",
-//                     description: "read the local JSON file and return a JSON object",
-//                     parameters: {
-//                         type: "object",
-//                         properties: {
-//                             filePath: {
-//                                 type: "string",
-//                                 description:"the local file path that it would read from",
-//                             }
-//                         },
-//                         required: ["filePath"],
-//                         additionalProperties: false
-//                     },
-//                     strict: true
-//                 }
-//             }
-
-//         ]
-//     }
+        tools: tools,
+    }
      
-// )
+)
 // if(suggestion.tool_calls[0]){
     
 //     console.log("true");
@@ -146,43 +127,43 @@ async function readUserProfile(filePath){
 // say(JSON.stringify(suggestion, null, 2));
 // say(JSON.stringify(suggestion.tool_calls[0]));
 
-// const messages = [];
-// messages.push ({role:"system", content:"You are a helpful customer support assistant. Use the supplied tools to assist the user."});
-// messages.push({role: "user", content:"Give me suggestions for skills to imporve basing off of my skill tree profile"});
-// messages.push({role: "assistant", content: `${suggestion.content}`});
+const messages = [];
+messages.push ({role:"system", content:"You are a helpful customer support assistant. Use the supplied tools to assist the user."});
+messages.push({role: "user", content:"Give me suggestions for skills to imporve basing off of my skill tree profile"});
+messages.push({role: "assistant", content: `${suggestion.content}`});
+
+say(JSON.stringify(suggestion));
+const toolCalls = await gpt(
+    {
+        messages: messages,
+        tools: tools
+
+    }
+)
+
+if(suggestion.tool_calls){
+    say("calling function now");
+    await handleFunctionCall(suggestion.tool_calls);
+    suggestion = await gpt(
+        {
+            messages,
+            max_tokens: 256
+        }
+    )
+
+}
 
 
-// const toolCalls = await gpt(
-//     {
-//         messages: messages,
-//         tools: tools
+async function handleFunctionCall(tool_calls){
+    const functionName = tool_calls[0].name;
+    const usingFunction = await readUserProfile(savePath);
 
-//     }
-// )
+    messages.push([{
+        tool_call_id: tool_calls[0].id,
+        role: "tool",
+        name: functionName,
+        content: usingFunction
+    }])
 
-// if(suggestion.tool_calls){
-//     say("calling function now");
-//     await handleFunctionCall(suggestion.tool_calls);
-//     suggestion = await gpt(
-//         {
-//             messages,
-//             max_tokens: 256
-//         }
-//     )
-
-// }
-// say(suggestion.content);
-
-// async function handleFunctionCall(tool_calls){
-//     const functionName = tool_calls[0].name;
-//     const usingFunction = await readUserProfile(savePath);
-
-//     messages.push([{
-//         tool_call_id: tool_calls[0].id,
-//         role: "tool",
-//         name: functionName,
-//         content: usingFunction
-//     }])
-
-// }
+}
    
