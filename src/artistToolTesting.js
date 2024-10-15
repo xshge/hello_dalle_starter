@@ -35,25 +35,20 @@ if ("SkillTree" in userProfile && userProfile.SkillTree != undefined) {
     .header([colors.rgb24("Skill Name", 0xff3333), "Level"])
     .column(0, { border: true });
 
-  const startingLevel = userProfile.skillLevel;
-  switch (startingLevel) {
-    case ("begginer"):
-      for (const item of userProfile["SkillTree"]) {
-        for (const [key, value] of Object.entries(item)) {
-          tree.push([begginer(key), value]);
-          //console.log(key, value);
+  //go through skillTree and check if cIndex exist
+  for (const item of userProfile["SkillTree"]) {
+    if ("cIndex" in item) {
+      const _color = item["cIndex"];
+      console.log("checking color index");
+      for (const [key, value] of Object.entries(item)) {
+        if (key != "cIndex") {
+          tree.push([colors.rgb24(key, _color), value]);
         }
       }
+    } else {
+      noCIndexTree(tree);
       break;
-
-    case ("intermediate"):
-      for (const item of userProfile["SkillTree"]) {
-        for (const [key, value] of Object.entries(item)) {
-          tree.push([colors.rgb24(key, 0x6AD23D), value]);
-          //console.log(key, value);
-        }
-      }
-      break;
+    }
   }
 
   userDoesntExist = false;
@@ -187,13 +182,15 @@ async function loggingProgress(existingProfile) {
     );
     if (confirm) {
       say("Updating Your SkillTree");
-      const skills = existingProfile["SkillTree"].map((item) =>
-        Object.keys(item)[0]
-      );
-      // const selectedSkill = await Select.prompt({
-      //   message: "Which skill would you like to update on?",
-      //   options: skills,
-      // });
+      const skills = existingProfile["SkillTree"].map((item) => {
+        const keys = Object.keys(item);
+
+        // Find the first key that isn't 'cIndex'
+        const skillName = keys.find((key) => key !== "cIndex");
+
+        return skillName;
+      });
+
       const entry = await ask(
         "Please provide a description of what have you done recently",
       );
@@ -227,8 +224,8 @@ async function loggingProgress(existingProfile) {
             content:
               `You are an helpful but critical assistant that evaluate artists' progress in their journey of bettering their skills. 
               Basing off of user's dexription, you always evaluate for each skills in this array ${skills}, and you always give points to each skills within the range of 1 through 10. 
-              Your number of evaluation should match the number of elements in this array.
-              You should only give higher points when user made relevant progress in said skills.
+              Your number of outputs should always match the number of skills in this array.
+              You should only give higher points when user made relevant progress in said skills. 
               No points should be given if the description is not relevant to users' skill set.
               `,
           },
@@ -259,7 +256,15 @@ async function loggingProgress(existingProfile) {
         for (let i = 0; i < skillTreeObj.length; i++) {
           let skillobj = skillTreeObj[i];
           for (const [key, value] of Object.entries(skillobj)) {
-            skillobj[key] = value + addedPoints[i];
+            if (addedPoints[i] != null) {
+              if (key != "cIndex") {
+                skillobj[key] = value + addedPoints[i];
+              }
+            } else {
+              if (key != "cIndex") {
+                skillobj[key] = value + 0;
+              }
+            }
           }
         }
         console.log(JSON.stringify(skillTreeObj));
@@ -281,6 +286,7 @@ async function loggingProgress(existingProfile) {
 
   //checking out the skill tree;
   showSkillTree(existingProfile);
+  await writeUserSaveFile(savePath, existingProfile);
 }
 function showSkillTree(file) {
   let colorIndex;
@@ -291,19 +297,63 @@ function showSkillTree(file) {
   for (const item of file["SkillTree"]) {
     for (const [key, value] of Object.entries(item)) {
       //compare each of their points to a bench mark (switch cases), 25:advanced beginner color hexcode, 50: intermediate color hexcode,
-      console.log(value);
-      if (5 <= value && value <= 10) {
-        colorIndex = 0xE875B1;
-        newTree.push([colors.rgb24(key, colorIndex), value]);
-      } else if (10 <= value && value <= 20) {
-        colorIndex = 0x6AD23D;
-        newTree.push([colors.rgb24(key, colorIndex), value]);
-      } else if (20 <= value && value <= 30) {
-        colorIndex = 0x28c78f;
-        newTree.push([colors.rgb24(key, colorIndex), value]);
+
+      if (key != "cIndex") {
+        console.log(value);
+        if (5 <= value && value <= 10) {
+          colorIndex = 0xE875B1;
+          newTree.push([colors.rgb24(key, colorIndex), value]);
+          // add cIndex for the section or adding it;
+          editingCIndex(item, colorIndex);
+        } else if (10 <= value && value <= 20) {
+          colorIndex = 0x6AD23D;
+          newTree.push([colors.rgb24(key, colorIndex), value]);
+          editingCIndex(item, colorIndex);
+        } else if (20 <= value && value <= 30) {
+          colorIndex = 0x28c78f;
+          newTree.push([colors.rgb24(key, colorIndex), value]);
+          editingCIndex(item, colorIndex);
+        }
       }
     }
   }
 
   newTree.render();
+}
+
+function editingCIndex(profileobj, index) {
+  //check if this skill has a color index section
+  if ("cIndex" in profileobj) {
+    console.log("yeah it exist");
+    profileobj["cIndex"] = index;
+  } else {
+    profileobj.cIndex = index;
+  }
+}
+function noCIndexTree(_tree) {
+  const startingLevel = userProfile.skillLevel;
+  switch (startingLevel) {
+    case ("begginer"):
+      for (const item of userProfile["SkillTree"]) {
+        for (const [key, value] of Object.entries(item)) {
+          if (key != "cIndex") {
+            _tree.push([begginer(key), value]);
+          }
+
+          //console.log(key, value);
+        }
+      }
+      break;
+
+    case ("intermediate"):
+      for (const item of userProfile["SkillTree"]) {
+        for (const [key, value] of Object.entries(item)) {
+          if (key != "cIndex") {
+            _tree.push([colors.rgb24(key, 0x6AD23D), value]);
+          }
+          //console.log(key, value);
+        }
+      }
+      break;
+  }
 }
