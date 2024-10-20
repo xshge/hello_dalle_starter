@@ -3,14 +3,14 @@
  * Dall•e and showing the results.
  */
 
-import { say } from "./shared/cli.ts";
-import { promptDalle } from "./shared/openai.ts";
-import { LogLevel, setLogLevel } from "./shared/logger.ts";
-setLogLevel(LogLevel.Debug);
+import { say } from "../shared/cli.ts";
+import { promptDalle } from "../shared/openai.ts";
+import { LogLevel, setLogLevel } from "../shared/logger.ts";
+setLogLevel(LogLevel.Warn);
 
 // sent prompt to gpt and relay response
 const response = await promptDalle(
-    `A cartoon of an gnome in a pointed hat sanding in the woods.
+  `A cartoon of an gnome in a pointed hat sanding in the woods.
     Bright cheery colors.`,
 );
 
@@ -20,4 +20,4 @@ const response = await promptDalle(
 
 say("");
 say("URL");
-say(response.url);
+say(response.revised_prompt);

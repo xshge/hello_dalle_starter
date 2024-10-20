@@ -1,5 +1,5 @@
-import { say } from "./shared/cli.ts";
-import { promptDalle } from "./shared/openai.ts";
+import { say } from "../shared/cli.ts";
+import { promptDalle } from "../shared/openai.ts";
 
 main();
 

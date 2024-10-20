@@ -3,13 +3,15 @@
  * and relays the response.
  */
 
-import { ask, say } from "./shared/cli.ts";
-import { promptDalle } from "./shared/openai.ts";
+import { ask, say } from "../shared/cli.ts";
+import { promptDalle } from "../shared/openai.ts";
 
 const userPrompt = await ask("What do you want from Dall•e?");
 
 // sent prompt to gpt and relay response
-const response = await promptDalle(`${userPrompt} in Wassily Kandinsky painting style`);
+const response = await promptDalle(
+  `${userPrompt} in Wassily Kandinsky painting style`,
+);
 
 say("");
 say("URL");

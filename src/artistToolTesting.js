@@ -3,33 +3,50 @@ import {
   Confirm,
   Select,
 } from "https://deno.land/x/cliffy@v1.0.0-rc.4/prompt/mod.ts";
-import {
-  Column,
-  Table,
-} from "https://deno.land/x/cliffy@v1.0.0-rc.4/table/mod.ts";
+import { Table } from "https://deno.land/x/cliffy@v1.0.0-rc.4/table/mod.ts";
 import { colors } from "https://deno.land/x/cliffy@v1.0.0-rc.4/ansi/colors.ts";
-
+import boxen from "npm:boxen@7.1.1";
 import { gpt, promptGPT } from "./shared/openai.ts";
-import * as mod from "https://deno.land/std@0.224.0/datetime/mod.ts";
+
+import { debug } from "./shared/logger.ts";
 
 let userDoesntExist;
 const savePath = "src/user.json";
 let suggestion = String.empty;
-const begginer = colors.yellow;
-const intermediate = colors.cyan;
+const begginer = colors.rgb24("begginer", 0xE875B1);
+const intermediate = colors.rgb24("intemediate", 0x6AD23D);
+const advanced = colors.rgb24("advanced", 0x28c78f);
+const master = colors.rgb24("master", 0xedca18);
+
+const cupcake = `
+     --@--
+   (_______)
+  (_________)
+   \\ __/___/
+`;
 let newUserProfile = {
   "fileName": " ",
   "expertise": " ",
   "skillLevel": " ",
 };
-
-say("Welcomes to artist skill tree");
+//console.log(cupcake);
+say("Welcomes to Craft Your Path");
 say("");
 const startDate = new Date();
 console.log(startDate);
-
+say("");
+console.log(
+  boxen(`\n ${begginer} \n ${intermediate} \n ${advanced} \n ${master}`, {
+    title: "Levels",
+    titleAlignment: "center",
+    textAlignment: "center",
+    padding: { top: 1, bottom: 2 },
+  }),
+);
 const userProfile = await readUserProfile(savePath);
+
 // showing user skillTree if it exist
+
 if ("SkillTree" in userProfile && userProfile.SkillTree != undefined) {
   const tree = new Table()
     .header([colors.rgb24("Skill Name", 0xff3333), "Level"])
@@ -39,9 +56,9 @@ if ("SkillTree" in userProfile && userProfile.SkillTree != undefined) {
   for (const item of userProfile["SkillTree"]) {
     if ("cIndex" in item) {
       const _color = item["cIndex"];
-      console.log("checking color index");
+      //console.log("checking color index");
       for (const [key, value] of Object.entries(item)) {
-        if (key != "cIndex") {
+        if (key != "cIndex" && key != "topped") {
           tree.push([colors.rgb24(key, _color), value]);
         }
       }
@@ -53,6 +70,8 @@ if ("SkillTree" in userProfile && userProfile.SkillTree != undefined) {
 
   userDoesntExist = false;
   tree.render();
+} else {
+  userDoesntExist = true;
 }
 
 const selectedTask = await Select.prompt({
@@ -65,7 +84,6 @@ const selectedTask = await Select.prompt({
 });
 
 if (typeof selectedTask === "boolean") {
-  console.log("logging trees");
   //calculating their progress
   await loggingProgress(userProfile);
 } else {
@@ -78,11 +96,13 @@ if (typeof selectedTask === "boolean") {
 
 async function startNewProfile() {
   //setting up new files
+  console.clear();
+
   newUserProfile.fileName = await ask("How would you like to name your file?");
-  newUserProfile.expertise = await Select.prompt(
+  newUserProfile.expertise = await ask(
     "Which craft would you like to practice?",
   );
-  newUserProfile.skillLevel = await ask({
+  newUserProfile.skillLevel = await Select.prompt({
     message: "what is your current skill level in that craft?",
     options: [
       "begginer",
@@ -90,8 +110,8 @@ async function startNewProfile() {
       "advanced",
     ],
   });
+  await createSkillTree(newUserProfile);
   await writeUserSaveFile("src/user.json", newUserProfile);
-  userExist = false;
 }
 
 async function writeUserSaveFile(filePath, Json) {
@@ -117,6 +137,7 @@ async function createSuggestion(jsonObj) {
     `
         Basing off of this user profile: ${JSON.stringify(jsonObj)}, 
         give me only the name of one skill relating to this user's expertise that they could expand upon.
+        No repeat on skills that the user already has in their profile. 
         `,
     { max_tokens: 200 },
   );
@@ -125,33 +146,37 @@ async function createSuggestion(jsonObj) {
   return suggestion;
 }
 
-// if(userExist){
-//     //update skilltree;
-//     const profile = await readUserProfile('src/user.json');
-//     const choices = await Confirm.prompt("Do you want to add a new skill?");
-//    if(choices){
-//     //add a new section in skill tree;
-//     const newSkill = await createSuggestion(profile);
-//     profile['SkillTree'].push({[newSkill] : 1});
+//add a new section in skill tree;
+async function addSkill(file) {
+  console.clear();
+  say(" ");
 
-//     await writeUserSaveFile(savePath, profile);
-//    }else{
-//     say("Ok, good luck in your journey improving your skill, my fellow artist.");
-//    }
+  const adding = await Confirm.prompt("Would you like to add a new skill?");
 
-// }else{
-//     //create a skill tree;
-//    let user = await readUserProfile(savePath);
-//     await createSuggestion(user);
+  if (adding) {
+    const newSkill = await createSuggestion(file);
+    say(" ");
+    say(`${newSkill} has been added!`);
 
-//     user.SkillTree = [];
-//     user.SkillTree.push({[suggestion]: 1});
-//     await writeUserSaveFile(savePath, user);
-// }
+    file["SkillTree"].push({ [newSkill]: 5 });
+    await writeUserSaveFile(savePath, file);
+  }
+}
+
+async function createSkillTree(profile) {
+  say(" ");
+  say("lets start you off with your first skill to practice on!");
+
+  const newSkill = await createSuggestion(profile);
+
+  profile.SkillTree = [];
+  profile.SkillTree.push({ [newSkill]: 5 });
+}
+//create a skill tree;
 
 async function updatingProfile(existingProfile) {
   //asking user for what do they want to do;
-
+  console.clear();
   //changing information on the profile;
   const changeOptions = [];
   for (const userFields in existingProfile) {
@@ -170,12 +195,15 @@ async function updatingProfile(existingProfile) {
   existingProfile[field] = changes;
   //then save it to local file with writeUserFile
   await writeUserSaveFile("src/user.json", existingProfile);
+  await QuitorContinue(existingProfile);
 }
 
 async function loggingProgress(existingProfile) {
+  console.clear();
   if ("SkillTree" in existingProfile) {
     //logging user practice streak;
     const skillTreeObj = existingProfile["SkillTree"];
+    let mastered = false;
     //console.log(skillTreeObj.values());
     const confirm = await Confirm.prompt(
       "Would you like to log your practice streak?",
@@ -196,7 +224,7 @@ async function loggingProgress(existingProfile) {
       );
       //feed it to gpt;
       //gpt response format [{"skill1" : 2}, {"skill2" : 3}];
-      console.log(skills);
+
       const skill_schema = {
         name: "skillpoints",
         schema: {
@@ -242,11 +270,13 @@ async function loggingProgress(existingProfile) {
         temperature: 0.1,
       });
 
-      say(rating.content);
+      //say(rating.content);
       const pointObject = JSON.parse(rating.content);
       const addedPoints = pointObject["skillpoints"].map((item) =>
         Object.values(item)[0]
       );
+
+      let levelUpCount = 0;
       const allEqual = (arr) => arr.every((v) => v === 0);
       if (allEqual(addedPoints)) {
         say("sorry u made no progress");
@@ -259,6 +289,14 @@ async function loggingProgress(existingProfile) {
             if (addedPoints[i] != null) {
               if (key != "cIndex") {
                 skillobj[key] = value + addedPoints[i];
+
+                if (skillobj[key] >= 30) {
+                  levelUpCount++;
+
+                  if (!mastered) {
+                    mastered = true;
+                  }
+                }
               }
             } else {
               if (key != "cIndex") {
@@ -267,17 +305,14 @@ async function loggingProgress(existingProfile) {
             }
           }
         }
-        console.log(JSON.stringify(skillTreeObj));
       }
-      // let value = existingProfile["SkillTree"].find((item) =>
-      //   item[selectedSkill] != undefined
-      // )[selectedSkill];
-      // value++;
-      // existingProfile["SkillTree"].find((item) =>
-      //   item[selectedSkill] != undefined
-      // )[selectedSkill] = value;
-
-      // await writeUserSaveFile("src/user.json", existingProfile);
+      console.log("count for leveled up skills" + levelUpCount);
+      if (mastered) {
+        checkProgress(existingProfile, levelUpCount);
+      }
+      showSkillTree(existingProfile);
+      await writeUserSaveFile(savePath, existingProfile);
+      await QuitorContinue(existingProfile);
     }
   } else {
     say("Sorry, there is no skill tree in your profile");
@@ -285,8 +320,34 @@ async function loggingProgress(existingProfile) {
   }
 
   //checking out the skill tree;
-  showSkillTree(existingProfile);
-  await writeUserSaveFile(savePath, existingProfile);
+}
+//call this only when one of user
+function checkProgress(profileObj, counts) {
+  //check if there have been masteredflag
+  if ("masteredCount" in profileObj) {
+    //compare the exist value to the one that are counted through loop;
+    say(" ");
+
+    const flags = profileObj["masteredCount"];
+    if (counts > flags) {
+      //congrats
+      say(" Yay!! ☜(⌒▽⌒)☞ !!");
+      say(" ");
+      say("Congratualation!");
+      say(" ");
+      say("Here is another cupcake!");
+      console.log(cupcake);
+      profileObj["masteredCount"] = counts;
+    }
+  } else {
+    say("Omg you mastered a skill!!");
+    say(" ");
+    say("Here is a cupcake as the reward!");
+    console.log(cupcake);
+    say(" ");
+    profileObj.masteredCount = counts;
+    say("You will get a cupcake everytime that you mastered a skill");
+  }
 }
 function showSkillTree(file) {
   let colorIndex;
@@ -299,7 +360,6 @@ function showSkillTree(file) {
       //compare each of their points to a bench mark (switch cases), 25:advanced beginner color hexcode, 50: intermediate color hexcode,
 
       if (key != "cIndex") {
-        console.log(value);
         if (5 <= value && value <= 10) {
           colorIndex = 0xE875B1;
           newTree.push([colors.rgb24(key, colorIndex), value]);
@@ -313,6 +373,10 @@ function showSkillTree(file) {
           colorIndex = 0x28c78f;
           newTree.push([colors.rgb24(key, colorIndex), value]);
           editingCIndex(item, colorIndex);
+        } else if (value > 30) {
+          colorIndex = 0xedca18;
+          newTree.push([colors.rgb24(key, colorIndex), value]);
+          editingCIndex(item, colorIndex);
         }
       }
     }
@@ -324,7 +388,6 @@ function showSkillTree(file) {
 function editingCIndex(profileobj, index) {
   //check if this skill has a color index section
   if ("cIndex" in profileobj) {
-    console.log("yeah it exist");
     profileobj["cIndex"] = index;
   } else {
     profileobj.cIndex = index;
@@ -337,7 +400,7 @@ function noCIndexTree(_tree) {
       for (const item of userProfile["SkillTree"]) {
         for (const [key, value] of Object.entries(item)) {
           if (key != "cIndex") {
-            _tree.push([begginer(key), value]);
+            _tree.push([colors.rgb24(key, 0xE875B1), value]);
           }
 
           //console.log(key, value);
@@ -355,5 +418,63 @@ function noCIndexTree(_tree) {
         }
       }
       break;
+    case ("adavanced"):
+      for (const item of userProfile["SkillTree"]) {
+        for (const [key, value] of Object.entries(item)) {
+          if (key != "cIndex") {
+            _tree.push([colors.rgb24(key, 0x28c78f), value]);
+          }
+        }
+      }
+      break;
+
+    default:
+      for (const item of userProfile["SkillTree"]) {
+        for (const [key, value] of Object.entries(item)) {
+          if (key != "cIndex") {
+            _tree.push([key, value]);
+          }
+        }
+      }
+      break;
+  }
+}
+async function QuitorContinue(file) {
+  const answer = await Confirm.prompt("Would you like to do something else?");
+  if (answer) {
+    const newTask = await Select.prompt({
+      message: "What would you like to do?",
+      options: [
+        "Change my profile",
+        "Log your progress",
+        "Start a new profile",
+        "Add new skill",
+      ],
+    });
+
+    //choose a new task;
+    switch (newTask) {
+      case "Change my profile":
+        await updatingProfile(file);
+
+        break;
+      case "Log your progress":
+        await loggingProgress(file);
+
+        break;
+      case "Start new profile":
+        await startNewProfile();
+
+        break;
+      case "Add new skill":
+        await addSkill(file);
+
+        break;
+    }
+  } else {
+    say(" ");
+    say(
+      "Ok, good luck in your journey improving your skill, my fellow artist. (｡◕‿◕｡)",
+    );
   }
 }
