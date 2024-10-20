@@ -335,7 +335,7 @@ function checkProgress(profileObj, counts) {
       //congrats
       say(" Yay!! ☜(⌒▽⌒)☞ !!");
       say(" ");
-      say("Congratualation!");
+      say("Congratulation!");
       say(" ");
       say("Here is another cupcake!");
       console.log(cupcake);
