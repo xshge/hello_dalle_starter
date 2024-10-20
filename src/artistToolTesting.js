@@ -63,7 +63,9 @@ if ("SkillTree" in userProfile && userProfile.SkillTree != undefined) {
         }
       }
     } else {
-      noCIndexTree(tree);
+      const key = Object.keys(item)[0];
+      const value = item[key];
+      noCIndexTree(tree, key, value);
       break;
     }
   }
@@ -306,7 +308,7 @@ async function loggingProgress(existingProfile) {
           }
         }
       }
-      console.log("count for leveled up skills" + levelUpCount);
+      //console.log("count for leveled up skills" + levelUpCount);
       if (mastered) {
         checkProgress(existingProfile, levelUpCount);
       }
@@ -393,49 +395,26 @@ function editingCIndex(profileobj, index) {
     profileobj.cIndex = index;
   }
 }
-function noCIndexTree(_tree) {
+function noCIndexTree(_tree, ky, val) {
   const startingLevel = userProfile.skillLevel;
   switch (startingLevel) {
     case ("begginer"):
-      for (const item of userProfile["SkillTree"]) {
-        for (const [key, value] of Object.entries(item)) {
-          if (key != "cIndex") {
-            _tree.push([colors.rgb24(key, 0xE875B1), value]);
-          }
+      _tree.push([colors.rgb24(ky, 0xE875B1), val]);
 
-          //console.log(key, value);
-        }
-      }
       break;
 
     case ("intermediate"):
-      for (const item of userProfile["SkillTree"]) {
-        for (const [key, value] of Object.entries(item)) {
-          if (key != "cIndex") {
-            _tree.push([colors.rgb24(key, 0x6AD23D), value]);
-          }
-          //console.log(key, value);
-        }
-      }
+      _tree.push([colors.rgb24(ky, 0x6AD23D), val]);
+
       break;
-    case ("adavanced"):
-      for (const item of userProfile["SkillTree"]) {
-        for (const [key, value] of Object.entries(item)) {
-          if (key != "cIndex") {
-            _tree.push([colors.rgb24(key, 0x28c78f), value]);
-          }
-        }
-      }
+    case ("advanced"):
+      _tree.push([colors.rgb24(ky, 0x28c78f), val]);
+
       break;
 
     default:
-      for (const item of userProfile["SkillTree"]) {
-        for (const [key, value] of Object.entries(item)) {
-          if (key != "cIndex") {
-            _tree.push([key, value]);
-          }
-        }
-      }
+      _tree.push([ky, val]);
+
       break;
   }
 }
